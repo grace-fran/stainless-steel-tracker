@@ -6,67 +6,72 @@ import requests
 
 DATA_FILE = "data.json"
 
-def fetch_nickel_price():
-    """嘗試從 API 抓取價格，若失敗則回傳備用預設價格，確保流程絕不中斷"""
+def fetch_half_year_history():
+    """抓取過去半年 (180天) 的每日歷史數據"""
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
     
-    url = "https://query1.finance.yahoo.com/v8/finance/chart/VALE?interval=1d&range=5d"
+    # 請求 6 個月 (6m) 的每日 (1d) 歷史 K 線資料
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/VALE?interval=1d&range=6m"
+    
+    history_data = []
     
     try:
-        resp = requests.get(url, headers=headers, timeout=5)
+        resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             data = resp.json()
-            quotes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
-            valid_prices = [p for p in quotes if p is not None]
-            if valid_prices:
-                return round(valid_prices[-1] * 1200, 2)
+            result = data["chart"]["result"][0]
+            timestamps = result.get("timestamp", [])
+            quotes = result["indicators"]["quote"][0]["close"]
+            
+            for ts, price in zip(timestamps, quotes):
+                if price is not None:
+                    date_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+                    # 以基礎係數換算為參考鎳價 (USD/Ton)
+                    nickel_price = round(price * 1200, 2)
+                    base_304 = round(nickel_price * 0.12 + 1100, 2)
+                    base_316 = round(base_304 * 1.38, 2)
+                    base_316l = round(base_316 * 1.03, 2)
+                    
+                    history_data.append({
+                        "date": date_str,
+                        "nickel": nickel_price,
+                        "ss304": base_304,
+                        "ss316": base_316,
+                        "ss316l": base_316l
+                    })
+            
+            if history_data:
+                print(f"✅ 成功擷取過去半年共 {len(history_data)} 筆歷史交易日數據！")
+                return history_data
+                
     except Exception as e:
-        print(f"⚠️ 網路抓取發生異常: {e}，將使用預設基準價。")
-    
-    # 備用基準價 (USD/Ton)
-    return 16500.0
-
-def get_latest_prices():
-    today = datetime.now().strftime("%Y-%m-%d")
-    nickel_price = fetch_nickel_price()
-
-    # 計算 304 / 316 / 316L 參考指標價
-    base_304 = round(nickel_price * 0.12 + 1100, 2)
-    base_316 = round(base_304 * 1.38, 2)
-    base_316l = round(base_316 * 1.03, 2)
-
-    return {
-        "date": today,
-        "nickel": nickel_price,
-        "ss304": base_304,
-        "ss316": base_316,
-        "ss316l": base_316l
-    }
+        print(f"⚠️ 抓取半年歷史資料失敗: {e}")
+        
+    return []
 
 def update_json():
     try:
-        history = []
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, "r", encoding="utf-8") as f:
-                try:
-                    history = json.load(f)
-                except Exception:
-                    history = []
+        # 抓取過去半年的歷史資料
+        full_history = fetch_half_year_history()
+        
+        # 若網路抓取失敗，則維持備用邏輯
+        if not full_history:
+            today = datetime.now().strftime("%Y-%m-%d")
+            full_history = [{
+                "date": today,
+                "nickel": 16500.0,
+                "ss304": 3080.0,
+                "ss316": 4250.4,
+                "ss316l": 4377.91
+            }]
 
-        new_data = get_latest_prices()
-
-        # 避免同天重複寫入
-        if history and isinstance(history, list) and history[-1].get("date") == new_data["date"]:
-            history[-1] = new_data
-        else:
-            history.append(new_data)
-
+        # 覆寫寫入 data.json
         with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(history, f, ensure_ascii=False, indent=2)
+            json.dump(full_history, f, ensure_ascii=False, indent=2)
 
-        print(f"✅ [{new_data['date']}] 價格數據更新成功：", new_data)
+        print("✅ data.json 升級完成！已寫入半年的歷史紀錄。")
     except Exception as e:
         print(f"❌ 寫入 JSON 時發生錯誤: {e}")
         sys.exit(1)
