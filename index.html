@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>不銹鋼 304 / 316 / 316L 價格趨勢自動追蹤</title>
+  <title>不銹鋼 304 / 316 / 316L 價格趨勢追蹤</title>
   <!-- 引入 Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -12,33 +12,36 @@
     h1 { text-align: center; color: #1e293b; margin-bottom: 8px; }
     p.subtitle { text-align: center; color: #64748b; font-size: 0.9em; margin-bottom: 25px; }
     .cards { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
-    .card { flex: 1; min-width: 200px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
-    .card h3 { margin: 0 0 8px 0; font-size: 0.95em; color: #475569; }
-    .card .price { font-size: 1.4em; font-weight: bold; color: #0f172a; }
-    .chart-box { position: relative; width: 100%; height: 450px; }
+    .card { flex: 1; min-width: 180px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
+    .card h3 { margin: 0 0 8px 0; font-size: 0.9em; color: #475569; }
+    .card .price { font-size: 1.3em; font-weight: bold; color: #0f172a; }
+    .chart-box { position: relative; width: 100%; height: 420px; }
+    #status-msg { text-align: center; color: #e11d48; font-weight: bold; margin-bottom: 15px; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <h1>不銹鋼 304 / 316 / 316L 價格走勢追蹤</h1>
-  <p class="subtitle">每日自動更新 | 包含 LME 鎳價與不銹鋼現貨推估指標</p>
+  <p class="subtitle">自動更新 | 包含歷史走勢與不銹鋼現貨推估指標</p>
+  
+  <div id="status-msg">資料載入中...</div>
 
   <div class="cards">
     <div class="card">
-      <h3>LME 鎳價 (USD/Ton)</h3>
+      <h3>最新 LME 鎳價</h3>
       <div class="price" id="p-nickel">--</div>
     </div>
     <div class="card">
-      <h3>304 不銹鋼指標 (USD/Ton)</h3>
+      <h3>304 不銹鋼指標</h3>
       <div class="price" id="p-304" style="color:#2563eb;">--</div>
     </div>
     <div class="card">
-      <h3>316 不銹鋼指標 (USD/Ton)</h3>
+      <h3>316 不銹鋼指標</h3>
       <div class="price" id="p-316" style="color:#16a34a;">--</div>
     </div>
     <div class="card">
-      <h3>316L 不銹鋼指標 (USD/Ton)</h3>
+      <h3>316L 不銹鋼指標</h3>
       <div class="price" id="p-316l" style="color:#dc2626;">--</div>
     </div>
   </div>
@@ -50,17 +53,30 @@
 
 <script>
   async function loadData() {
+    const statusEl = document.getElementById('status-msg');
     try {
-      const response = await fetch('data.json');
+      // 加上時間戳記防瀏覽器快取 (Cache Busting)
+      const response = await fetch('./data.json?t=' + new Date().getTime());
+      
+      if (!response.ok) {
+        throw new Error('找不到 data.json 檔案 (HTTP Status ' + response.status + ')');
+      }
+
       const data = await response.json();
 
-      if (!data || data.length === 0) return;
+      if (!Array.isArray(data) || data.length === 0) {
+        statusEl.innerText = '⚠️ data.json 為空或格式不正確';
+        return;
+      }
+
+      statusEl.style.color = '#059669';
+      statusEl.innerText = '✅ 已成功載入 ' + data.length + ' 筆歷史資料';
 
       const latest = data[data.length - 1];
-      document.getElementById('p-nickel').innerText = latest.nickel ? `$${latest.nickel}` : 'N/A';
-      document.getElementById('p-304').innerText = latest.ss304 ? `$${latest.ss304}` : 'N/A';
-      document.getElementById('p-316').innerText = latest.ss316 ? `$${latest.ss316}` : 'N/A';
-      document.getElementById('p-316l').innerText = latest.ss316l ? `$${latest.ss316l}` : 'N/A';
+      document.getElementById('p-nickel').innerText = latest.nickel ? '$' + latest.nickel.toLocaleString() : 'N/A';
+      document.getElementById('p-304').innerText = latest.ss304 ? '$' + latest.ss304.toLocaleString() : 'N/A';
+      document.getElementById('p-316').innerText = latest.ss316 ? '$' + latest.ss316.toLocaleString() : 'N/A';
+      document.getElementById('p-316l').innerText = latest.ss316l ? '$' + latest.ss316l.toLocaleString() : 'N/A';
 
       const labels = data.map(item => item.date);
       const nickelData = data.map(item => item.nickel);
@@ -74,10 +90,10 @@
         data: {
           labels: labels,
           datasets: [
-            { label: 'LME 鎳價', data: nickelData, borderColor: '#64748b', backgroundColor: 'transparent', tension: 0.2 },
-            { label: '304 不銹鋼', data: ss304Data, borderColor: '#2563eb', backgroundColor: 'transparent', tension: 0.2 },
-            { label: '316 不銹鋼', data: ss316Data, borderColor: '#16a34a', backgroundColor: 'transparent', tension: 0.2 },
-            { label: '316L 不銹鋼', data: ss316lData, borderColor: '#dc2626', backgroundColor: 'transparent', tension: 0.2 }
+            { label: 'LME 鎳價', data: nickelData, borderColor: '#64748b', backgroundColor: 'transparent', pointRadius: 1, borderWidth: 1.5, tension: 0.1 },
+            { label: '304 不銹鋼', data: ss304Data, borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 1, borderWidth: 2, tension: 0.1 },
+            { label: '316 不銹鋼', data: ss316Data, borderColor: '#16a34a', backgroundColor: 'transparent', pointRadius: 1, borderWidth: 2, tension: 0.1 },
+            { label: '316L 不銹鋼', data: ss316lData, borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 1, borderWidth: 2, tension: 0.1 }
           ]
         },
         options: {
@@ -88,13 +104,18 @@
             tooltip: { mode: 'index', intersect: false }
           },
           scales: {
-            x: { title: { display: true, text: '日期' } },
+            x: { 
+              title: { display: true, text: '日期' },
+              ticks: { maxTicksLimit: 12 } // 避免半年資料文字疊在一起
+            },
             y: { title: { display: true, text: '價格 (USD / Ton)' } }
           }
         }
       });
     } catch (e) {
-      console.error('無法載入 JSON 資料:', e);
+      statusEl.style.color = '#dc2626';
+      statusEl.innerText = '❌ 載入失敗: ' + e.message;
+      console.error(e);
     }
   }
 
