@@ -97,7 +97,8 @@
           datasets: [
             { label: '國際 304 (USD/Ton)', data: data.map(i => i.ss304), borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 },
             { label: '國際 316L (USD/Ton)', data: data.map(i => i.ss316l), borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 },
-            { label: '中國 304 現貨 (RMB/Ton)', data: data.map(i => i.ss304_rmb ? round(i.ss304_rmb / 7.23, 2) : null), borderColor: '#0284c7', borderDash: [5, 5], backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 }
+            // 修正 round 為 Math.round
+            { label: '中國 304 現貨 (折合 USD/Ton)', data: data.map(i => i.ss304_rmb ? Math.round(i.ss304_rmb / 7.23) : null), borderColor: '#0284c7', borderDash: [5, 5], backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 }
           ]
         },
         options: {
@@ -106,12 +107,13 @@
           plugins: { legend: { position: 'top' } },
           scales: {
             x: { ticks: { maxTicksLimit: 12 } },
-            y: { title: { display: true, text: '折合 USD / Ton (便於對比)' } }
+            y: { title: { display: true, text: '價格 (USD / Ton)' } }
           }
         }
       });
     } catch (e) {
       statusEl.innerText = '❌ 載入失敗: ' + e.message;
+      console.error(e);
     }
   }
   loadData();
