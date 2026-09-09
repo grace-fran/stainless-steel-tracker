@@ -3,21 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>不銹鋼 304 / 316 / 316L 價格趨勢追蹤</title>
+  <title>全球與中國不銹鋼 304 / 316L 價格趨勢追蹤</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
-    .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .container { max-width: 1100px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     h1 { text-align: center; color: #1e293b; margin-bottom: 8px; }
     p.subtitle { text-align: center; color: #64748b; font-size: 0.9em; margin-bottom: 20px; }
-    .cards { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
-    .card { flex: 1; min-width: 180px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
-    .card h3 { margin: 0 0 8px 0; font-size: 0.9em; color: #475569; }
-    .card .price { font-size: 1.3em; font-weight: bold; color: #0f172a; }
+    .cards { display: flex; gap: 12px; margin-bottom: 25px; flex-wrap: wrap; }
+    .card { flex: 1; min-width: 150px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center; }
+    .card h3 { margin: 0 0 6px 0; font-size: 0.85em; color: #475569; }
+    .card .price { font-size: 1.2em; font-weight: bold; color: #0f172a; }
     .chart-box { position: relative; width: 100%; height: 420px; margin-bottom: 25px; }
     #status-msg { text-align: center; color: #059669; font-weight: bold; margin-bottom: 15px; }
     
-    /* 資料來源說明區塊樣式 */
     .source-box { background: #f1f5f9; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 0 8px 8px 0; font-size: 0.88em; color: #475569; line-height: 1.6; }
     .source-box h4 { margin: 0 0 8px 0; color: #1e293b; font-size: 1em; }
     .source-box ul { margin: 0; padding-left: 20px; }
@@ -28,27 +27,31 @@
 <body>
 
 <div class="container">
-  <h1>不銹鋼 304 / 316 / 316L 價格走勢追蹤</h1>
-  <p class="subtitle">自動更新 | 包含歷史走勢與不銹鋼現貨推估指標</p>
+  <h1>全球與中國不銹鋼價格趨勢追蹤</h1>
+  <p class="subtitle">每日自動更新 | LME 鎳價、國際美元指標與中國市場現貨價</p>
   
   <div id="status-msg">資料載入中...</div>
 
   <div class="cards">
     <div class="card">
-      <h3>LME 鎳價指標</h3>
+      <h3>LME 鎳價 (USD)</h3>
       <div class="price" id="p-nickel">--</div>
     </div>
     <div class="card">
-      <h3>304 不銹鋼指標</h3>
+      <h3>國際 304 (USD)</h3>
       <div class="price" id="p-304" style="color:#2563eb;">--</div>
     </div>
     <div class="card">
-      <h3>316 不銹鋼指標</h3>
-      <div class="price" id="p-316" style="color:#16a34a;">--</div>
-    </div>
-    <div class="card">
-      <h3>316L 不銹鋼指標</h3>
+      <h3>國際 316L (USD)</h3>
       <div class="price" id="p-316l" style="color:#dc2626;">--</div>
+    </div>
+    <div class="card" style="background:#f0f9ff; border-color:#bae6fd;">
+      <h3>中國 304 現貨 (RMB)</h3>
+      <div class="price" id="p-304-rmb" style="color:#0284c7;">--</div>
+    </div>
+    <div class="card" style="background:#fef2f2; border-color:#fecaca;">
+      <h3>中國 316L 現貨 (RMB)</h3>
+      <div class="price" id="p-316l-rmb" style="color:#e11d48;">--</div>
     </div>
   </div>
 
@@ -56,13 +59,12 @@
     <canvas id="priceChart"></canvas>
   </div>
 
-  <!-- 新增：數據來源與透明度驗證區塊 -->
   <div class="source-box">
-    <h4>📌 資料來源與計算邏輯透明度說明：</h4>
+    <h4>📌 資料來源與中國市場查驗管道：</h4>
     <ul>
-      <li><strong>鎳價來源（Nickel）：</strong> 參考 <a href="https://www.lme.com/metals/non-ferrous/lme-nickel#Summary" target="_blank">LME 倫敦金屬交易所 (London Metal Exchange)</a> 每日現貨/期貨收盤數據。</li>
-      <li><strong>304 / 316 / 316L 現貨推估：</strong> 依據國際金屬成分比例（304含8-10%鎳；316/316L額外含2%鉬與高鎳比），結合 <a href="https://fubon-ebrokerdj.fbs.com.tw/z/zh/zhg/zhg_C020110.djhtm" target="_blank">富邦/MoneyDJ 國際金屬行情</a> 與市場基本加工成本公式換算。</li>
-      <li><strong>原始數據校驗：</strong> 本系統每日 09:00 由 GitHub 機器人自動從金融 API 抓取數據並存入公開檔 <a href="./data.json" target="_blank">data.json</a>，資料完全公開透明可供驗證。</li>
+      <li><strong>國際行情來源：</strong> <a href="https://www.lme.com/metals/non-ferrous/lme-nickel#Summary" target="_blank">LME 倫敦金屬交易所</a> 與 <a href="https://fubon-ebrokerdj.fbs.com.tw/z/zh/zhg/zhg_C020110.djhtm" target="_blank">MoneyDJ / 富邦金屬行情</a>。</li>
+      <li><strong>中國市場現貨查驗：</strong> 參考 <a href="http://www.100ppi.com/price/price-160.html" target="_blank">生意社 (100PPI) 不銹鋼現貨價</a> 與 <a href="https://www.smm.cn/" target="_blank">SMM 上海有色網 (無錫/佛山市場價)</a>。</li>
+      <li><strong>原始數據校驗：</strong> 每日數據完全公開，可直接開啓 <a href="./data.json" target="_blank">data.json</a> 驗證原始數據。</li>
     </ul>
   </div>
 </div>
@@ -80,10 +82,11 @@
       statusEl.innerText = '✅ 已成功同步最新價格資料（共 ' + data.length + ' 筆紀錄）';
 
       const latest = data[data.length - 1];
-      document.getElementById('p-nickel').innerText = latest.nickel ? '$' + latest.nickel.toLocaleString() + ' USD' : 'N/A';
-      document.getElementById('p-304').innerText = latest.ss304 ? '$' + latest.ss304.toLocaleString() + ' USD' : 'N/A';
-      document.getElementById('p-316').innerText = latest.ss316 ? '$' + latest.ss316.toLocaleString() + ' USD' : 'N/A';
-      document.getElementById('p-316l').innerText = latest.ss316l ? '$' + latest.ss316l.toLocaleString() + ' USD' : 'N/A';
+      document.getElementById('p-nickel').innerText = latest.nickel ? '$' + latest.nickel.toLocaleString() : 'N/A';
+      document.getElementById('p-304').innerText = latest.ss304 ? '$' + latest.ss304.toLocaleString() : 'N/A';
+      document.getElementById('p-316l').innerText = latest.ss316l ? '$' + latest.ss316l.toLocaleString() : 'N/A';
+      document.getElementById('p-304-rmb').innerText = latest.ss304_rmb ? '¥' + latest.ss304_rmb.toLocaleString() : 'N/A';
+      document.getElementById('p-316l-rmb').innerText = latest.ss316l_rmb ? '¥' + latest.ss316l_rmb.toLocaleString() : 'N/A';
 
       const labels = data.map(item => item.date);
       const ctx = document.getElementById('priceChart').getContext('2d');
@@ -92,10 +95,9 @@
         data: {
           labels: labels,
           datasets: [
-            { label: 'LME 鎳價', data: data.map(i => i.nickel), borderColor: '#64748b', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 },
-            { label: '304 不銹鋼', data: data.map(i => i.ss304), borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 },
-            { label: '316 不銹鋼', data: data.map(i => i.ss316), borderColor: '#16a34a', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 },
-            { label: '316L 不銹鋼', data: data.map(i => i.ss316l), borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 }
+            { label: '國際 304 (USD/Ton)', data: data.map(i => i.ss304), borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 },
+            { label: '國際 316L (USD/Ton)', data: data.map(i => i.ss316l), borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 },
+            { label: '中國 304 現貨 (RMB/Ton)', data: data.map(i => i.ss304_rmb ? round(i.ss304_rmb / 7.23, 2) : null), borderColor: '#0284c7', borderDash: [5, 5], backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 }
           ]
         },
         options: {
@@ -104,7 +106,7 @@
           plugins: { legend: { position: 'top' } },
           scales: {
             x: { ticks: { maxTicksLimit: 12 } },
-            y: { title: { display: true, text: '價格 (USD / Ton)' } }
+            y: { title: { display: true, text: '折合 USD / Ton (便於對比)' } }
           }
         }
       });
