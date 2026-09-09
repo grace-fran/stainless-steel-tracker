@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>不銹鋼 304 / 316 / 316L 價格趨勢自動追蹤</title>
+  <!-- 引入 Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
+    .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    h1 { text-align: center; color: #1e293b; margin-bottom: 8px; }
+    p.subtitle { text-align: center; color: #64748b; font-size: 0.9em; margin-bottom: 25px; }
+    .cards { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
+    .card { flex: 1; min-width: 200px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
+    .card h3 { margin: 0 0 8px 0; font-size: 0.95em; color: #475569; }
+    .card .price { font-size: 1.4em; font-weight: bold; color: #0f172a; }
+    .chart-box { position: relative; width: 100%; height: 450px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>不銹鋼 304 / 316 / 316L 價格走勢追蹤</h1>
+  <p class="subtitle">每日自動更新 | 包含 LME 鎳價與不銹鋼現貨推估指標</p>
+
+  <div class="cards">
+    <div class="card">
+      <h3>LME 鎳價 (USD/Ton)</h3>
+      <div class="price" id="p-nickel">--</div>
+    </div>
+    <div class="card">
+      <h3>304 不銹鋼指標 (USD/Ton)</h3>
+      <div class="price" id="p-304" style="color:#2563eb;">--</div>
+    </div>
+    <div class="card">
+      <h3>316 不銹鋼指標 (USD/Ton)</h3>
+      <div class="price" id="p-316" style="color:#16a34a;">--</div>
+    </div>
+    <div class="card">
+      <h3>316L 不銹鋼指標 (USD/Ton)</h3>
+      <div class="price" id="p-316l" style="color:#dc2626;">--</div>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <canvas id="priceChart"></canvas>
+  </div>
+</div>
+
+<script>
+  async function loadData() {
+    try {
+      const response = await fetch('data.json');
+      const data = await response.json();
+
+      if (!data || data.length === 0) return;
+
+      const latest = data[data.length - 1];
+      document.getElementById('p-nickel').innerText = latest.nickel ? `$${latest.nickel}` : 'N/A';
+      document.getElementById('p-304').innerText = latest.ss304 ? `$${latest.ss304}` : 'N/A';
+      document.getElementById('p-316').innerText = latest.ss316 ? `$${latest.ss316}` : 'N/A';
+      document.getElementById('p-316l').innerText = latest.ss316l ? `$${latest.ss316l}` : 'N/A';
+
+      const labels = data.map(item => item.date);
+      const nickelData = data.map(item => item.nickel);
+      const ss304Data = data.map(item => item.ss304);
+      const ss316Data = data.map(item => item.ss316);
+      const ss316lData = data.map(item => item.ss316l);
+
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'LME 鎳價', data: nickelData, borderColor: '#64748b', backgroundColor: 'transparent', tension: 0.2 },
+            { label: '304 不銹鋼', data: ss304Data, borderColor: '#2563eb', backgroundColor: 'transparent', tension: 0.2 },
+            { label: '316 不銹鋼', data: ss316Data, borderColor: '#16a34a', backgroundColor: 'transparent', tension: 0.2 },
+            { label: '316L 不銹鋼', data: ss316lData, borderColor: '#dc2626', backgroundColor: 'transparent', tension: 0.2 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { mode: 'index', intersect: false }
+          },
+          scales: {
+            x: { title: { display: true, text: '日期' } },
+            y: { title: { display: true, text: '價格 (USD / Ton)' } }
+          }
+        }
+      });
+    } catch (e) {
+      console.error('無法載入 JSON 資料:', e);
+    }
+  }
+
+  loadData();
+</script>
+
+</body>
+</html>
