@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>全球與中國不銹鋼 304 / 316L 價格趨勢追蹤</title>
+  <title>全球與中國不銹鋼 304 / 316 / 316L 價格趨勢追蹤</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
@@ -42,16 +42,16 @@
       <div class="price" id="p-304" style="color:#2563eb;">--</div>
     </div>
     <div class="card">
+      <h3>國際 316 (USD)</h3>
+      <div class="price" id="p-316" style="color:#16a34a;">--</div>
+    </div>
+    <div class="card">
       <h3>國際 316L (USD)</h3>
       <div class="price" id="p-316l" style="color:#dc2626;">--</div>
     </div>
     <div class="card" style="background:#f0f9ff; border-color:#bae6fd;">
       <h3>中國 304 現貨 (RMB)</h3>
       <div class="price" id="p-304-rmb" style="color:#0284c7;">--</div>
-    </div>
-    <div class="card" style="background:#fef2f2; border-color:#fecaca;">
-      <h3>中國 316L 現貨 (RMB)</h3>
-      <div class="price" id="p-316l-rmb" style="color:#e11d48;">--</div>
     </div>
   </div>
 
@@ -84,29 +84,48 @@
       const latest = data[data.length - 1];
       document.getElementById('p-nickel').innerText = latest.nickel ? '$' + latest.nickel.toLocaleString() : 'N/A';
       document.getElementById('p-304').innerText = latest.ss304 ? '$' + latest.ss304.toLocaleString() : 'N/A';
+      document.getElementById('p-316').innerText = latest.ss316 ? '$' + latest.ss316.toLocaleString() : 'N/A';
       document.getElementById('p-316l').innerText = latest.ss316l ? '$' + latest.ss316l.toLocaleString() : 'N/A';
       document.getElementById('p-304-rmb').innerText = latest.ss304_rmb ? '¥' + latest.ss304_rmb.toLocaleString() : 'N/A';
-      document.getElementById('p-316l-rmb').innerText = latest.ss316l_rmb ? '¥' + latest.ss316l_rmb.toLocaleString() : 'N/A';
 
       const labels = data.map(item => item.date);
       const ctx = document.getElementById('priceChart').getContext('2d');
+      
+      // 顯示所有 5 條價格走勢線
       new Chart(ctx, {
         type: 'line',
         data: {
           labels: labels,
           datasets: [
-            { label: '國際 304 (USD/Ton)', data: data.map(i => i.ss304), borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 },
-            { label: '國際 316L (USD/Ton)', data: data.map(i => i.ss316l), borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 },
-            // 修正 round 為 Math.round
-            { label: '中國 304 現貨 (折合 USD/Ton)', data: data.map(i => i.ss304_rmb ? Math.round(i.ss304_rmb / 7.23) : null), borderColor: '#0284c7', borderDash: [5, 5], backgroundColor: 'transparent', pointRadius: 2, tension: 0.1 }
+            { label: 'LME 鎳價 (USD)', data: data.map(i => i.nickel), borderColor: '#64748b', backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 },
+            { label: '國際 304 (USD)', data: data.map(i => i.ss304), borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 },
+            { label: '國際 316 (USD)', data: data.map(i => i.ss316), borderColor: '#16a34a', backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 },
+            { label: '國際 316L (USD)', data: data.map(i => i.ss316l), borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 },
+            { label: '中國 304現貨 (折合 USD)', data: data.map(i => i.ss304_rmb ? Math.round(i.ss304_rmb / 7.23) : null), borderColor: '#0284c7', borderDash: [4, 4], backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'top' } },
+          plugins: { 
+            legend: { 
+              position: 'top',
+              onClick: (e, legendItem, legend) => {
+                // 點擊圖例可以自由隱藏/顯示特定走勢線
+                const index = legendItem.datasetIndex;
+                const ci = legend.chart;
+                if (ci.isDatasetVisible(index)) {
+                  ci.hide(index);
+                  legendItem.hidden = true;
+                } else {
+                  ci.show(index);
+                  legendItem.hidden = false;
+                }
+              }
+            } 
+          },
           scales: {
-            x: { ticks: { maxTicksLimit: 12 } },
+            x: { title: { display: true, text: '日期' } },
             y: { title: { display: true, text: '價格 (USD / Ton)' } }
           }
         }
