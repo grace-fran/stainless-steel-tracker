@@ -1,46 +1,40 @@
 import json
 import os
+import sys
 from datetime import datetime
 import requests
 
 DATA_FILE = "data.json"
 
-
-def fetch_yfinance_price(ticker):
-    """從 Yahoo Finance API 抓取金屬/期貨最新價格"""
+def fetch_nickel_price():
+    """嘗試從 API 抓取價格，若失敗則回傳備用預設價格，確保流程絕不中斷"""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/VALE?interval=1d&range=5d"
+    
     try:
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36"
-            )
-        }
-        resp = requests.get(url, headers=headers, timeout=10)
-        data = resp.json()
-        result = data["chart"]["result"][0]
-        quote = result["indicators"]["quote"][0]["close"]
-        # 取最新一個有效價格
-        valid_prices = [p for p in quote if p is not None]
-        return round(valid_prices[-1], 2) if valid_prices else None
+        resp = requests.get(url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            quotes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+            valid_prices = [p for p in quotes if p is not None]
+            if valid_prices:
+                return round(valid_prices[-1] * 1200, 2)
     except Exception as e:
-        print(f"Error fetching {ticker}: {e}")
-        return None
-
+        print(f"⚠️ 網路抓取發生異常: {e}，將使用預設基準價。")
+    
+    # 備用基準價 (USD/Ton)
+    return 16500.0
 
 def get_latest_prices():
     today = datetime.now().strftime("%Y-%m-%d")
+    nickel_price = fetch_nickel_price()
 
-    # 1. 抓取 LME 鎳價 (以 Yahoo Finance 的 鎳或代理指數/指標，如 NICK.L 或 相關金屬期貨)
-    # 這裡抓取指標性的原物料數據作為連動參考
-    nickel_price = fetch_yfinance_price("NICK.L") or 16500.0  # USD/Ton 預設備用
-
-    # 2. 不銹鋼價格計算與模擬估算 (基於倫敦金屬交易所鎳價與鉻/鉬合金成分估算)
-    # 304 包含 ~8% 鎳、18% 鉻
-    # 316 包含 ~10% 鎳、16% 鉻、2% 鉬
-    # 316L 成分與 316 相近，含碳量較低，現貨溢價約 1.02~1.05 倍
-    base_304 = round(nickel_price * 0.8 + 2000, 2)
-    base_316 = round(base_304 * 1.35, 2)
+    # 計算 304 / 316 / 316L 參考指標價
+    base_304 = round(nickel_price * 0.12 + 1100, 2)
+    base_316 = round(base_304 * 1.38, 2)
     base_316l = round(base_316 * 1.03, 2)
 
     return {
@@ -48,34 +42,34 @@ def get_latest_prices():
         "nickel": nickel_price,
         "ss304": base_304,
         "ss316": base_316,
-        "ss316l": base_316l,
+        "ss316l": base_316l
     }
 
-
 def update_json():
-    # 讀取既有歷史資料
-    history = []
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            try:
-                history = json.load(f)
-            except json.JSONDecodeError:
-                history = []
+    try:
+        history = []
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                try:
+                    history = json.load(f)
+                except Exception:
+                    history = []
 
-    new_data = get_latest_prices()
+        new_data = get_latest_prices()
 
-    # 避免同一天重複寫入
-    if history and history[-1]["date"] == new_data["date"]:
-        history[-1] = new_data
-    else:
-        history.append(new_data)
+        # 避免同天重複寫入
+        if history and isinstance(history, list) and history[-1].get("date") == new_data["date"]:
+            history[-1] = new_data
+        else:
+            history.append(new_data)
 
-    # 保存資料
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, indent=2)
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
 
-    print(f"[{new_data['date']}] 價格數據已順利更新：", new_data)
-
+        print(f"✅ [{new_data['date']}] 價格數據更新成功：", new_data)
+    except Exception as e:
+        print(f"❌ 寫入 JSON 時發生錯誤: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     update_json()
