@@ -14,7 +14,7 @@
     .card { flex: 1; min-width: 150px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center; }
     .card h3 { margin: 0 0 6px 0; font-size: 0.85em; color: #475569; }
     .card .price { font-size: 1.2em; font-weight: bold; color: #0f172a; }
-    .chart-box { position: relative; width: 100%; height: 420px; margin-bottom: 25px; }
+    .chart-box { position: relative; width: 100%; height: 450px; margin-bottom: 25px; }
     #status-msg { text-align: center; color: #059669; font-weight: bold; margin-bottom: 15px; }
     
     .source-box { background: #f1f5f9; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 0 8px 8px 0; font-size: 0.88em; color: #475569; line-height: 1.6; }
@@ -91,42 +91,39 @@
       const labels = data.map(item => item.date);
       const ctx = document.getElementById('priceChart').getContext('2d');
       
-      // 顯示所有 5 條價格走勢線
       new Chart(ctx, {
         type: 'line',
         data: {
           labels: labels,
           datasets: [
-            { label: 'LME 鎳價 (USD)', data: data.map(i => i.nickel), borderColor: '#64748b', backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 },
-            { label: '國際 304 (USD)', data: data.map(i => i.ss304), borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 },
-            { label: '國際 316 (USD)', data: data.map(i => i.ss316), borderColor: '#16a34a', backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 },
-            { label: '國際 316L (USD)', data: data.map(i => i.ss316l), borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 },
-            { label: '中國 304現貨 (折合 USD)', data: data.map(i => i.ss304_rmb ? Math.round(i.ss304_rmb / 7.23) : null), borderColor: '#0284c7', borderDash: [4, 4], backgroundColor: 'transparent', pointRadius: 3, tension: 0.1 }
+            { label: '國際 304 (USD)', data: data.map(i => i.ss304), borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 3, borderWidth: 2, yAxisID: 'y' },
+            { label: '國際 316 (USD)', data: data.map(i => i.ss316), borderColor: '#16a34a', backgroundColor: 'transparent', pointRadius: 3, borderWidth: 2, yAxisID: 'y' },
+            { label: '國際 316L (USD)', data: data.map(i => i.ss316l), borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 3, borderWidth: 2, yAxisID: 'y' },
+            { label: '🇨🇳 中國 304現貨 (折合 USD)', data: data.map(i => i.ss304_rmb ? Math.round(i.ss304_rmb / 7.23) : null), borderColor: '#0284c7', borderWidth: 3, borderDash: [6, 4], backgroundColor: 'transparent', pointRadius: 4, yAxisID: 'y' },
+            { label: 'LME 鎳價 (USD/Ton)', data: data.map(i => i.nickel), borderColor: '#94a3b8', backgroundColor: 'transparent', pointRadius: 2, borderWidth: 1.5, yAxisID: 'y1' }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: { 
-            legend: { 
-              position: 'top',
-              onClick: (e, legendItem, legend) => {
-                // 點擊圖例可以自由隱藏/顯示特定走勢線
-                const index = legendItem.datasetIndex;
-                const ci = legend.chart;
-                if (ci.isDatasetVisible(index)) {
-                  ci.hide(index);
-                  legendItem.hidden = true;
-                } else {
-                  ci.show(index);
-                  legendItem.hidden = false;
-                }
-              }
-            } 
+            legend: { position: 'top' } 
           },
           scales: {
             x: { title: { display: true, text: '日期' } },
-            y: { title: { display: true, text: '價格 (USD / Ton)' } }
+            y: { 
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: { display: true, text: '不銹鋼價格 (USD / Ton)' }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              title: { display: true, text: 'LME 鎳價 (USD / Ton)' },
+              grid: { drawOnChartArea: false } // 避免雙網格線重疊混亂
+            }
           }
         }
       });
